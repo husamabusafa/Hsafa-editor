@@ -33,7 +33,8 @@ export const createReplaceTools = (
   setFileContent: Dispatch<SetStateAction<string>>,
   setCode: Dispatch<SetStateAction<string>>
 ) => ({
-  edit: async (params: EditParams): Promise<ToolResponse> => {
+  edit:{
+    tool:  async (params: EditParams): Promise<ToolResponse> => {
     try {
       const { old_string, new_string, replace_all = false, explanation } = params
       const fileContent = getFileContent() // Get current content
@@ -92,8 +93,11 @@ export const createReplaceTools = (
       }
     }
   },
+  executeEachToken: true
+},
 
-  multi_edit: async (params: MultiEditParams): Promise<ToolResponse> => {
+  multi_edit: {
+    tool: async (params: MultiEditParams): Promise<ToolResponse> => {
     try {
       const { edits, explanation } = params
       let currentContent = getFileContent() // Get current content
@@ -162,6 +166,8 @@ export const createReplaceTools = (
       }
     }
   },
+  executeEachToken: true
+},
 
   read_file: async (): Promise<ToolResponse> => {
     const fileContent = getFileContent() // Get current content

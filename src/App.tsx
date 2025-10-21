@@ -1,10 +1,9 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
-import Editor from '@monaco-editor/react'
+import Editor, { DiffEditor } from '@monaco-editor/react'
 import { ArrowLeftRight, FileDiff, GitCompare, FileJson, FileText, Settings, GitCompareArrows } from 'lucide-react'
 import './App.css'
 import { HsafaProvider, ContentContainer, HsafaChat } from '@hsafa/ui-sdk'
 import { createReplaceTools } from './tools/replaceTools'
-import DiffViewer from './components/DiffViewer'
 function App() {
   const [code, setCode] = useState(`// Welcome to Monaco Editor
 function hello() {
@@ -124,11 +123,15 @@ hello();
             {hasChanges && (
               <>
                 <button
-                  onClick={() => setShowDiff(true)}
-                  className="flex items-center gap-1 px-3 py-1 text-sm text-gray-300 hover:text-white hover:bg-[#2a2a2a] rounded transition-colors"
+                  onClick={() => setShowDiff(!showDiff)}
+                  className={`flex items-center gap-1 px-3 py-1 text-sm ${
+                    showDiff 
+                      ? 'text-blue-400 bg-blue-400/10' 
+                      : 'text-gray-300 hover:text-white'
+                  } hover:bg-[#2a2a2a] rounded transition-colors`}
                 >
                   <GitCompareArrows size={16} />
-                  View Diff
+                  {showDiff ? 'Hide Diff' : 'Show Diff'}
                 </button>
                 <button
                   onClick={() => {
@@ -152,24 +155,51 @@ hello();
 
         {/* Monaco Editor */}
         <div className="flex-1">
-          <Editor
-            height="100%"
-            defaultLanguage="javascript"
-            value={code}
-            theme="vs-dark"
-            onChange={(value) => {
-              const newValue = value || ''
-              setCode(newValue)
-              setFileContent(newValue)
-            }}
-            options={{
-              fontSize: 14,
-              minimap: { enabled: true },
-              scrollBeyondLastLine: false,
-              automaticLayout: true,
-              padding: { top: 16 },
-            }}
-          />
+          {showDiff ? (
+            <DiffEditor
+              height="100%"
+              language="javascript"
+              original={originalContent}
+              modified={code}
+              theme="vs-dark"
+              options={{
+                fontSize: 14,
+                renderSideBySide: false, // Inline diff mode
+                scrollBeyondLastLine: false,
+                automaticLayout: true,
+                readOnly: false,
+                minimap: { enabled: true },
+              }}
+              onMount={(editor) => {
+                // Allow editing in the modified editor
+                const modifiedEditor = editor.getModifiedEditor()
+                modifiedEditor.onDidChangeModelContent(() => {
+                  const newValue = modifiedEditor.getValue()
+                  setCode(newValue)
+                  setFileContent(newValue)
+                })
+              }}
+            />
+          ) : (
+            <Editor
+              height="100%"
+              defaultLanguage="javascript"
+              value={code}
+              theme="vs-dark"
+              onChange={(value) => {
+                const newValue = value || ''
+                setCode(newValue)
+                setFileContent(newValue)
+              }}
+              options={{
+                fontSize: 14,
+                minimap: { enabled: true },
+                scrollBeyondLastLine: false,
+                automaticLayout: true,
+                padding: { top: 16 },
+              }}
+            />
+          )}
         </div>
       </main>
     </div></ContentContainer>
@@ -178,16 +208,6 @@ hello();
     agentId={currentAgentId}
     HsafaTools={currentTools}
     key={activeTab} />
-
-    {/* Diff Viewer Modal */}
-    {showDiff && (
-      <DiffViewer
-        original={originalContent}
-        modified={fileContent}
-        language="javascript"
-        onClose={() => setShowDiff(false)}
-      />
-    )}
     </HsafaProvider>
   )
 }
