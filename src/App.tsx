@@ -4,14 +4,38 @@ import { ArrowLeftRight, FileDiff, GitCompare, FileJson, FileText, Settings, Git
 import './App.css'
 import { HsafaProvider, ContentContainer, HsafaChat } from '@hsafa/ui-sdk'
 import { createReplaceTools } from './tools/replaceTools'
+import { createDiffPatchTools } from './tools/diffPatchTools'
+import { createJsonTools } from './tools/jsonTools'
 function App() {
-  const [code, setCode] = useState(`// Welcome to Monaco Editor
-function hello() {
-  console.log("Hello World!");
-}
-
-hello();
-`)
+  const [code, setCode] = useState(`{
+  "name": "My Project",
+  "version": "1.0.0",
+  "description": "A sample JSON document for testing",
+  "author": {
+    "name": "John Doe",
+    "email": "john@example.com"
+  },
+  "dependencies": [
+    "react",
+    "typescript",
+    "vite"
+  ],
+  "config": {
+    "port": 3000,
+    "debug": true,
+    "features": {
+      "auth": true,
+      "api": true,
+      "dashboard": false
+    }
+  },
+  "tags": ["web", "frontend", "typescript"],
+  "stats": {
+    "downloads": 1250,
+    "stars": 42,
+    "contributors": 5
+  }
+}`)
   const [activeTab, setActiveTab] = useState('replace')
   const [hoveredItem, setHoveredItem] = useState<string | null>(null)
   const [fileContent, setFileContent] = useState<string>(code)
@@ -25,9 +49,8 @@ hello();
 
   const navItems = [
     { id: 'replace', icon: ArrowLeftRight, label: 'Replace', agentId: 'cmh0b5c510004qguci50pzk0w' },
-    { id: 'diff_patch', icon: FileDiff, label: 'Diff Patch', agentId: 'diff_patch' },
-    { id: 'both', icon: GitCompare, label: 'Both', agentId: 'both' },
-    { id: 'json', icon: FileJson, label: 'JSON', agentId: 'json' },
+    { id: 'diff_patch', icon: FileDiff, label: 'Diff Patch', agentId: 'cmh0e9s1r002iqgucn6p09k1c' },
+    { id: 'json', icon: FileJson, label: 'JSON', agentId: 'cmh0gy6jr006kqgucurucdgao' },
     { id: 'md', icon: FileText, label: 'Markdown', agentId: 'md' },
   ]
   const currentAgentId = navItems.find((n) => n.id === activeTab)?.agentId ?? ''
@@ -47,19 +70,49 @@ hello();
     [setCode]
   )
 
+  const diffPatchTools = useMemo(
+    () => createDiffPatchTools(
+      () => fileContentRef.current,
+      setFileContent,
+      setCode
+    ),
+    [setCode]
+  )
+
+  const jsonTools = useMemo(
+    () => createJsonTools(
+      () => fileContentRef.current,
+      setFileContent,
+      setCode
+    ),
+    [setCode]
+  )
+
   // Tool mapping based on active tab
   const currentTools = useMemo(() => {
     switch (activeTab) {
       case 'replace':
         return replaceTools
       case 'diff_patch':
-        return {} // Placeholder for diff patch tools
-      case 'both':
-        return replaceTools // Can combine tools here
+        return diffPatchTools
+      case 'json':
+        return jsonTools
       default:
         return {}
     }
-  }, [activeTab, replaceTools])
+  }, [activeTab, replaceTools, diffPatchTools, jsonTools])
+
+  // Get language based on active tab
+  const currentLanguage = useMemo(() => {
+    switch (activeTab) {
+      case 'json':
+        return 'json'
+      case 'md':
+        return 'markdown'
+      default:
+        return 'javascript'
+    }
+  }, [activeTab])
 
   return (
     <HsafaProvider baseUrl="http://localhost:3900">
@@ -158,7 +211,7 @@ hello();
           {showDiff ? (
             <DiffEditor
               height="100%"
-              language="javascript"
+              language={currentLanguage}
               original={originalContent}
               modified={code}
               theme="vs-dark"
@@ -183,7 +236,7 @@ hello();
           ) : (
             <Editor
               height="100%"
-              defaultLanguage="javascript"
+              language={currentLanguage}
               value={code}
               theme="vs-dark"
               onChange={(value) => {
@@ -213,4 +266,5 @@ hello();
 }
 
 export default App
+
 
